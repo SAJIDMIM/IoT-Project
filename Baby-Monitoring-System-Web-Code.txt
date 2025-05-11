@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Baby Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+    }
+
+    header {
+      background-color: #1976D2;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+
+    header h1 {
+      font-size: 24px;
+    }
+
+    nav {
+      display: flex;
+      gap: 20px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 10px 15px;
+      border: 2px solid white; 
+      border-radius: 8px; 
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    nav a:hover {
+      opacity: 0.8;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .title {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 30px;
+      color: #0D47A1;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: space-between;
+    }
+
+    .card {
+      width: 40%;
+      background-color: #E3F2FD;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .card img {
+      width: 50px;
+      height: 50px;
+      margin-bottom: 15px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      font-size: 30px;
+      font-weight: bold;
+      color: #1565C0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        flex-direction: column;
+        align-items: center;
+      }
+      .card {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><i class="fas fa-microchip"></i> Baby Monitering System</h1>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">Settings</a>
+      <a href="#">Reports</a>
+      <a href="#">Logout</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="title">Realtime Sensor Readings</div>
+    <div class="grid">
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/speaker.png" alt="Sound Icon"/>
+        <h3>Sound Sensor</h3>
+        <p id="sound">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/soil.png" alt="Soil Icon"/>
+        <h3>Soil Moisture</h3>
+        <p id="soil">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/sun.png" alt="Light Icon"/>
+        <h3>Light Sensor</h3>
+        <p id="light">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/temperature.png" alt="Temp Icon"/>
+        <h3>Temperature</h3>
+        <p id="temperature">--</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Baby Monitoring System. All rights reserved.
+  </footer>
+
+  <!-- Firebase Modular SDK (Updated) -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-analytics.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-database.js";
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCptYzW5wgM9-sgUWn1VToAexGcurF-Ja0",
+      authDomain: "baby-monitoring-system-afe9a.firebaseapp.com",
+      databaseURL: "https://baby-monitoring-system-afe9a-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "baby-monitoring-system-afe9a",
+      storageBucket: "baby-monitoring-system-afe9a.firebasestorage.app",
+      messagingSenderId: "27766119473",
+      appId: "1:27766119473:web:cd0a1d33d1e2093c9c0910",
+      measurementId: "G-ZWLTW8NWNK"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const database = getDatabase(app);
+
+    // Function to update UI with sensor values
+    const updateValue = (id, path) => {
+      const dataRef = ref(database, path);
+      onValue(dataRef, snapshot => {
+        const value = snapshot.val();
+        document.getElementById(id).textContent = value !== null ? value : "--";
+      });
+    };
+
+    // Fetch sensor values
+    updateValue('sound', 'Sensors/Sound');
+    updateValue('soil', 'Sensors/Soil');
+    updateValue('light', 'Sensors/Light');
+    updateValue('temperature', 'Sensors/Temperature');
+  </script>
+</body>
+</html>
