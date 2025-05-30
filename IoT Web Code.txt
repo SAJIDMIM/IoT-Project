@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Baby Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.emailjs.com/sdk/3.2/email.min.js"></script>
+  <script>
+    window.onload = function () {
+      emailjs.init("xqFOt5JsxtsJ9euVM"); // Your EmailJS Public API Key
+    };
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Roboto", sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+    }
+
+    header {
+      background-color: #1976d2;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+
+    header h1 {
+      font-size: 24px;
+    }
+
+    nav {
+      display: flex;
+      gap: 20px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 10px 15px;
+      border: 2px solid white;
+      border-radius: 8px;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    nav a:hover {
+      opacity: 0.8;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .title {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 30px;
+      color: #0d47a1;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: space-between;
+    }
+
+    .card {
+      width: 40%;
+      background-color: #e3f2fd;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .card img {
+      width: 50px;
+      height: 50px;
+      margin-bottom: 15px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      font-size: 30px;
+      font-weight: bold;
+      color: #1565c0;
+      margin: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: #888;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #ff4444;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      font-weight: bold;
+      animation: slideIn 0.5s ease-in-out;
+    }
+
+    .toast.hidden {
+      display: none;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        flex-direction: column;
+        align-items: center;
+      }
+      .card {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-microchip"></i> Baby Monitoring System</h1>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">Settings</a>
+      <a href="#">Reports</a>
+      <a href="#">Logout</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="title">Realtime Sensor Readings</div>
+    <div class="grid">
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/speaker.png" alt="Sound Icon" />
+        <h3>Sound Sensor</h3>
+        <p id="sound">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/soil.png" alt="Soil Icon" />
+        <h3>Soil Moisture</h3>
+        <p id="soil">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/fire-element.png" alt="Smoke Icon" />
+        <h3>Smoke Sensor</h3>
+        <p id="smoke">--</p>
+      </div>
+
+      <div class="card">
+        <img src="https://img.icons8.com/ios-filled/100/temperature.png" alt="Temp Icon" />
+        <h3>Temperature</h3>
+        <p id="temperature">--</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>&copy; 2025 Baby Monitoring System. All rights reserved.</footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span id="toast-msg">Alert message</span>
+  </div>
+
+  <!-- Firebase SDK & Realtime Database -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-analytics.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      push,
+    } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCptYzW5wgM9-sgUWn1VToAexGcurF-Ja0",
+      authDomain: "baby-monitoring-system-afe9a.firebaseapp.com",
+      databaseURL: "https://baby-monitoring-system-afe9a-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "baby-monitoring-system-afe9a",
+      storageBucket: "baby-monitoring-system-afe9a.appspot.com",
+      messagingSenderId: "27766119473",
+      appId: "1:27766119473:web:cd0a1d33d1e2093c9c0910",
+      measurementId: "G-ZWLTW8NWNK",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const database = getDatabase(app);
+
+    const toast = document.getElementById("toast");
+    const toastMsg = document.getElementById("toast-msg");
+
+    function showToast(message) {
+      toastMsg.textContent = message;
+      toast.classList.remove("hidden");
+      setTimeout(() => toast.classList.add("hidden"), 5000);
+    }
+
+    const thresholds = {
+      sound: 60,
+      temperature: 37,
+      smoke: 60,
+      soil: 60,
+    };
+
+    const alertSent = {
+      sound: false,
+      temperature: false,
+      smoke: false,
+      soil: false,
+    };
+
+    const logAlert = (sensor, value) => {
+      const alertsRef = ref(database, "alerts");
+      push(alertsRef, {
+        sensor,
+        value,
+        timestamp: Date.now(),
+      });
+
+      emailjs.send("service_yb35w9f", "template_oqolw39", {
+        to_email: "mohamedsajid450@gmail.com",
+        sensor: sensor,
+        value: value,
+        timestamp: new Date().toLocaleString(),
+      }).then(
+        () => console.log("✅ Email sent successfully!"),
+        (error) => console.error("❌ Failed to send email:", error)
+      );
+    };
+
+    const dataRef = ref(database, "sensorData");
+
+    onValue(dataRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const { sound, temperature, smoke, soil } = data;
+
+      document.getElementById("sound").textContent = sound ?? "--";
+      document.getElementById("temperature").textContent = temperature ?? "--";
+      document.getElementById("smoke").textContent = smoke ?? "--";
+      document.getElementById("soil").textContent = soil ?? "--";
+
+      checkAndAlert("sound", sound, thresholds.sound);
+      checkAndAlert("temperature", temperature, thresholds.temperature);
+      checkAndAlert("smoke", smoke, thresholds.smoke);
+      checkAndAlert("soil", soil, thresholds.soil);
+    });
+
+    function checkAndAlert(id, val, threshold) {
+      if (val > threshold && !alertSent[id]) {
+        const messages = {
+          sound: "🔊 High Sound Detected!",
+          temperature: "🌡️ Room Temperature High!",
+          smoke: "🚨 Smoke Detected!",
+          soil: "💧 Soil Moisture too high!",
+        };
+        showToast(messages[id]);
+        logAlert(id.charAt(0).toUpperCase() + id.slice(1), val);
+        alertSent[id] = true;
+      } else if (val <= threshold) {
+        alertSent[id] = false;
+      }
+    }
+  </script>
+</body>
+</html>
