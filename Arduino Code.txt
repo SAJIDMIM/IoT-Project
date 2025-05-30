@@ -1,0 +1,146 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include <time.h>  // For setting system time
+
+// Wi-Fi credentials
+#define WIFI_SSID "Amjath's A36"
+#define WIFI_PASSWORD "amjath999"
+
+// Firebase project credentials
+#define API_KEY "AIzaSyCptYzW5wgM9-sgUWn1VToAexGcurF-Ja0"
+#define DATABASE_URL "https://baby-monitoring-system-afe9a-default-rtdb.asia-southeast1.firebasedatabase.app"
+
+// Sensor pins - adjust these pins as per your hardware setup
+#define SOIL_MOISTURE_PIN 34
+#define SOUND_SENSOR_PIN 32
+#define TEMP_SENSOR_PIN  33
+#define SMOKE_SENSOR_PIN 35
+
+// Firebase objects
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+// --- Token status callback helper functions ---
+String getTokenType(TokenInfo info) {
+  switch (info.type) {
+    case token_type_undefined: return "Undefined";
+    case token_type_id_token: return "ID Token";
+    case token_type_custom_token: return "Custom Token";
+    case token_type_oauth2_access_token: return "OAuth2 Access Token";  // ✅ Corrected here
+    default: return "Unknown";
+  }
+}
+
+
+String getTokenStatus(TokenInfo info) {
+  switch (info.status) {
+    case token_status_uninitialized: return "Uninitialized";
+    case token_status_on_request: return "Requesting";
+    case token_status_on_refresh: return "Refreshing";
+    case token_status_ready: return "Ready";
+    case token_status_error: return "Error";
+    default: return "Unknown";
+  }
+}
+
+void tokenStatusCallback(TokenInfo info) {
+  Serial.printf("Token Info: Type: %s | Status: %s\n",
+                getTokenType(info).c_str(),
+                getTokenStatus(info).c_str());
+}
+// ------------------------------------------------
+
+void setupTime() {
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov"); // Set timezone offset and daylight offset to 0 for UTC
+
+  Serial.print("Waiting for NTP time sync");
+  time_t now = time(nullptr);
+  while (now < 8 * 3600 * 2) {
+    delay(500);
+    Serial.print(".");
+    now = time(nullptr);
+  }
+  Serial.println("");
+  struct tm timeinfo;
+  gmtime_r(&now, &timeinfo);
+  Serial.printf("Current time: %s", asctime(&timeinfo));
+}
+
+void connectWiFi() {
+  Serial.printf("Connecting to %s", WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
+}
+
+void setupFirebase() {
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+  config.token_status_callback = tokenStatusCallback;  // 👈 Fix applied here
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("Signed up anonymously");
+  } else {
+    Serial.printf("Sign up failed: %s\n", config.signer.signupError.message.c_str());
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  connectWiFi();
+  setupTime();
+  setupFirebase();
+}
+
+void loop() {
+  int soilRaw = analogRead(SOIL_MOISTURE_PIN);
+  int soundRaw = analogRead(SOUND_SENSOR_PIN);
+  int tempRaw = analogRead(TEMP_SENSOR_PIN);
+  int smokeRaw = analogRead(SMOKE_SENSOR_PIN);
+
+  int soilPercent = map(soilRaw, 4095, 0, 0, 100);
+  int soundLevel = map(soundRaw, 0, 4095, 0, 100);
+  float voltage = tempRaw * (3.3 / 4095.0);
+  float temperatureC = voltage * 10.0;
+  int smokeLevel = map(smokeRaw, 0, 4095, 0, 100);
+
+  Serial.printf("Soil: %d%%\tSound: %d%%\tTemp: %.2f°C\tSmoke: %d%%\n",
+                soilPercent, soundLevel, temperatureC, smokeLevel);
+
+  if (!Firebase.RTDB.setInt(&fbdo, "/sensorData/soil", soilPercent)) {
+    Serial.printf("Failed to set soil: %s\n", fbdo.errorReason().c_str());
+  } else {
+    Serial.println("Soil data uploaded");
+  }
+
+  if (!Firebase.RTDB.setInt(&fbdo, "/sensorData/sound", soundLevel)) {
+    Serial.printf("Failed to set sound: %s\n", fbdo.errorReason().c_str());
+  } else {
+    Serial.println("Sound data uploaded");
+  }
+
+  if (!Firebase.RTDB.setFloat(&fbdo, "/sensorData/temperature", temperatureC)) {
+    Serial.printf("Failed to set temperature: %s\n", fbdo.errorReason().c_str());
+  } else {
+    Serial.println("Temperature data uploaded");
+  }
+
+  if (!Firebase.RTDB.setInt(&fbdo, "/sensorData/smoke", smokeLevel)) {
+    Serial.printf("Failed to set smoke: %s\n", fbdo.errorReason().c_str());
+  } else {
+    Serial.println("Smoke data uploaded");
+  }
+
+  Serial.println("Upload cycle complete.\n");
+  
+  delay(3000);
+}
